@@ -72,7 +72,6 @@ class DriverFormTests(TestCase):
             "last_name": "test_last_name",
         }
         form = DriverCreationForm(data=data)
-        print(form.errors)
         self.assertTrue(form.is_valid())
 
     def test_driver_license_form_with_invalid_length(self):

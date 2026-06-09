@@ -14,13 +14,22 @@ class ViewTests(TestCase):
             last_name="DriverLastName",
             license_number="ADM12345",
         )
-        cls.manufacturer_first = Manufacturer.objects.create(
+        cls.manufacturer_toyota = Manufacturer.objects.create(
             name="Toyota",
             country="Japan",
         )
-        cls.manufacturer_second = Manufacturer.objects.create(
+        cls.manufacturer_volkswagen = Manufacturer.objects.create(
             name="Volkswagen",
             country="Germany",
+        )
+
+        cls.car_supra = Car.objects.create(
+            model="Supra",
+            manufacturer=cls.manufacturer_toyota,
+        )
+        cls.car_volkswagen = Car.objects.create(
+            model="Touareg",
+            manufacturer=cls.manufacturer_volkswagen
         )
 
     def test_anonymous_user_redirect_to_login(self):
@@ -35,29 +44,51 @@ class ViewTests(TestCase):
         response = self.client.get(reverse("taxi:index"))
         self.assertEqual(response.context["num_visits"], 2)
 
-    def test_custom_search(self):
+    def test_manufacturer_name_search(self):
         self.client.force_login(self.driver)
         response = self.client.get(
             reverse("taxi:manufacturer-list"),
             data={"name": "Toyota"}
         )
         self.assertIn(
-            self.manufacturer_first,
+            self.manufacturer_toyota,
             response.context["manufacturer_list"]
         )
         self.assertNotIn(
-            self.manufacturer_second,
+            self.manufacturer_volkswagen,
             response.context["manufacturer_list"]
         )
 
-    def test_toggle_assign_to_car(self):
-        car = Car.objects.create(
-            model="Supra",
-            manufacturer=self.manufacturer_first,
-        )
+    def test_car_model_search(self):
         self.client.force_login(self.driver)
         response = self.client.get(
-            reverse("taxi:toggle-car-assign", args=[car.pk])
+            reverse("taxi:car-list"),
+            data={"model": "Supra"}
+        )
+        self.assertIn(
+            self.car_supra,
+            response.context["car_list"]
+        )
+        self.assertNotIn(
+            self.car_volkswagen,
+            response.context["car_list"]
+        )
+
+    def test_driver_username_search(self):
+        self.client.force_login(self.driver)
+        response = self.client.get(
+            reverse("taxi:driver-list"),
+            data={"username": "UsernameTest"}
+        )
+        self.assertIn(
+            self.driver,
+            response.context["driver_list"]
+        )
+
+    def test_toggle_assign_to_car(self):
+        self.client.force_login(self.driver)
+        response = self.client.get(
+            reverse("taxi:toggle-car-assign", args=[self.car_supra.pk])
         )
         self.assertEqual(response.status_code, 302)
-        self.assertIn(car, self.driver.cars.all())
+        self.assertIn(self.car_supra, self.driver.cars.all())
